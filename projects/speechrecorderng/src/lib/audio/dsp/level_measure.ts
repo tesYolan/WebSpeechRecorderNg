@@ -123,7 +123,7 @@ export class LevelMeasure {
   bufferLevelInfos: Array<LevelInfo>;
   peakLevelInfo: LevelInfo;
 
-  private workerFunctionURL: string;
+  //private workerFunctionURL: string;
   private worker: Worker;
 
   private bufferIndex: number = 0;
@@ -133,43 +133,43 @@ export class LevelMeasure {
 
   constructor() {
 
-    let workerFunctionBlob = new Blob(['(' + this.workerFunction.toString() + ')();'], {type: 'text/javascript'});
-    this.workerFunctionURL = window.URL.createObjectURL(workerFunctionBlob);
+    //let workerFunctionBlob = new Blob([this.workerFunction.toString() + '();'], {type: 'text/javascript'});
+    //this.workerFunctionURL = window.URL.createObjectURL(workerFunctionBlob);
 
   }
 
   calcBufferLevelInfos(audioBuffer: AudioBuffer, bufferTimeLength: number): Promise<LevelInfos> {
-    return new Promise<LevelInfos>((resolve,reject)=>{
+    return new Promise<LevelInfos>((resolve, reject) => {
       let chs = audioBuffer.numberOfChannels;
-      let bufferFrameLength=Math.round(audioBuffer.sampleRate*bufferTimeLength);
+      let bufferFrameLength = Math.round(audioBuffer.sampleRate * bufferTimeLength);
       let buffers = new Array<any>(chs);
       for (let ch = 0; ch < chs; ch++) {
-        let adCh=audioBuffer.getChannelData(ch);
-        let adChCopy=new Float32Array(adCh.length);
+        let adCh = audioBuffer.getChannelData(ch);
+        let adChCopy = new Float32Array(adCh.length);
         adChCopy.set(adCh);
         buffers[ch] = adChCopy.buffer;
       }
 
-      this.worker = new Worker(this.workerFunctionURL);
+      this.worker = new Worker('./level_measure_worker', {type: 'module'});
       this.worker.onmessage = (me) => {
 
-        let linLevelArrs=new Array<Float32Array>(chs);
+        let linLevelArrs = new Array<Float32Array>(chs);
         for (let ch = 0; ch < chs; ch++) {
           linLevelArrs[ch] = new Float32Array(me.data.linLevelBuffers[ch]);
         }
 
-        let bufferCount=Math.ceil(me.data.frameLength/me.data.bufferFrameLength);
-        let framePos=0;
+        let bufferCount = Math.ceil(me.data.frameLength / me.data.bufferFrameLength);
+        let framePos = 0;
         // TODO instantiate size
-        let bufferLevelInfos=new Array<LevelInfo>();
-        let peakLevelInfo=new LevelInfo(chs);
-        for(let bi=0;bi<bufferCount;bi++) {
+        let bufferLevelInfos = new Array<LevelInfo>();
+        let peakLevelInfo = new LevelInfo(chs);
+        for (let bi = 0; bi < bufferCount; bi++) {
           let minLevels = new Array<number>(chs);
           let maxLevels = new Array<number>(chs);
           for (let ch = 0; ch < chs; ch++) {
-            let linLvlArrPos=bi*2;
-            minLevels[ch]=linLevelArrs[ch][linLvlArrPos];
-            maxLevels[ch]=linLevelArrs[ch][linLvlArrPos+1];
+            let linLvlArrPos = bi * 2;
+            minLevels[ch] = linLevelArrs[ch][linLvlArrPos];
+            maxLevels[ch] = linLevelArrs[ch][linLvlArrPos + 1];
           }
           let bli = new LevelInfo(chs, framePos, me.data.bufferFrameLength, minLevels, maxLevels);
           bufferLevelInfos.push(bli);
@@ -179,7 +179,7 @@ export class LevelMeasure {
         resolve(new LevelInfos(bufferLevelInfos, peakLevelInfo));
       }
 
-      this.worker.postMessage({bufferFrameLength:bufferFrameLength,audioData: buffers, chs: chs}, buffers);
+      this.worker.postMessage({bufferFrameLength: bufferFrameLength, audioData: buffers, chs: chs}, buffers);
 
     });
 
@@ -190,53 +190,9 @@ export class LevelMeasure {
     this.worker.terminate();
 
   }
-
-  workerFunction() {
-    self.onmessage = function (msg) {
-
-      let chs = msg.data.chs;
-      let bufferFrameLength = msg.data.bufferFrameLength;
-
-      var audioData = new Array<Float32Array>(chs);
-      var linLevels = new Array<Float32Array>(chs);
-
-      for (let ch = 0; ch < chs; ch++) {
-
-        audioData[ch] = new Float32Array(msg.data.audioData[ch]);
-      }
-      let frameLength = audioData[0].length;
-      let bufferCount=Math.ceil(frameLength/bufferFrameLength);
-      for (let ch = 0; ch < chs; ch++) {
-        linLevels[ch] = new Float32Array(bufferCount*2);
-      }
-      if (audioData && chs > 0) {
-        for (var ch = 0; ch < chs; ch++) {
-          let chData = audioData[ch];
-
-          for (let s = 0; s < frameLength; s++) {
-            let bi = Math.floor(s / bufferFrameLength);
-            let lvlArrPos = bi * 2;
-            let bs = s % bufferFrameLength;
-
-            if (chData[s] < linLevels[ch][lvlArrPos]) {
-              linLevels[ch][lvlArrPos] = chData[s];
-            }
-            lvlArrPos++;
-            if (chData[s] > linLevels[ch][lvlArrPos]) {
-              linLevels[ch][lvlArrPos] = chData[s];
-            }
-          }
-        }
-        var linLevelBufs = new Array<any>(chs);
-        for (let ch = 0; ch < chs; ch++) {
-          linLevelBufs[ch] = linLevels[ch].buffer;
-        }
-        postMessage({bufferFrameLength:bufferFrameLength,frameLength:frameLength,linLevelBuffers: linLevelBufs}, linLevelBufs);
-
-      }
-    }
-  }
 }
+
+
 
 
 export class StreamLevelMeasure implements SequenceAudioFloat32OutStream {
@@ -244,18 +200,18 @@ export class StreamLevelMeasure implements SequenceAudioFloat32OutStream {
   currentLevelInfos: LevelInfo;
   peakLevelInfo: LevelInfo;
 
-  private workerFunctionURL: string;
-  private worker: Worker;
+  //private workerFunctionURL: string;
+  //private worker: Worker;
   private channelCount: number;
   private bufferIndex: number = 0;
   private frameCount: number = 0;
 
   levelListener: LevelListener;
-
+  const worker = new Worker('./level_measure_stream_worker',{type:'module'});
   constructor() {
 
-    let workerFunctionBlob = new Blob(['(' + this.workerFunction.toString() + ')();'], {type: 'text/javascript'});
-    this.workerFunctionURL = window.URL.createObjectURL(workerFunctionBlob);
+    //let workerFunctionBlob = new Blob(['(' + this.workerFunction.toString() + ')();'], {type: 'text/javascript'});
+    //this.workerFunctionURL = window.URL.createObjectURL(workerFunctionBlob);
 
   }
 
@@ -263,8 +219,8 @@ export class StreamLevelMeasure implements SequenceAudioFloat32OutStream {
     this.channelCount = channels;
     this.currentLevelInfos = new LevelInfo(this.channelCount);
     this.peakLevelInfo = new LevelInfo(this.channelCount);
-    this.worker = new Worker(this.workerFunctionURL);
-    this.worker.onmessage = (me) => {
+
+    worker.onmessage = (me) => {
       let streamFinished = me.data.streamFinished;
       if (streamFinished) {
         if (this.levelListener) {
@@ -306,7 +262,7 @@ export class StreamLevelMeasure implements SequenceAudioFloat32OutStream {
       bufArrCopies[ch] = bufferData[ch].slice();
       buffers[ch] = bufArrCopies[ch].buffer;
     }
-    this.worker.postMessage({
+    worker.postMessage({
       streamFinished: false,
       audioData: buffers,
       chs: this.channelCount,
@@ -317,59 +273,15 @@ export class StreamLevelMeasure implements SequenceAudioFloat32OutStream {
   }
 
   flush() {
-    this.worker.postMessage({streamFinished: true});
+    worker.postMessage({streamFinished: true});
 
   }
 
   close() {
-    if (this.worker) {
-      this.worker.terminate();
+    if (worker) {
+      worker.terminate();
     }
 
-  }
-
-
-  workerFunction() {
-    self.onmessage = function (msg) {
-      let streamFinished = msg.data.streamFinished;
-      if (streamFinished) {
-        postMessage({streamFinished: true});
-
-      } else {
-        var chs = msg.data.chs;
-        let frameLength = null;
-        var audioData = new Array<Float32Array>(chs);
-        var linLevels = new Array<Float32Array>(chs);
-        for (let ch = 0; ch < chs; ch++) {
-          linLevels[ch] = new Float32Array(2);
-          audioData[ch] = new Float32Array(msg.data.audioData[ch]);
-        }
-
-        if (audioData) {
-
-          for (var ch = 0; ch < chs; ch++) {
-            let chData = audioData[ch];
-            if (frameLength === null) {
-              frameLength = chData.length;
-            }
-            for (let s = 0; s < frameLength; s++) {
-              if (chData[s] < linLevels[ch][0]) {
-                linLevels[ch][0] = chData[s];
-              }
-              if (chData[s] > linLevels[ch][1]) {
-                linLevels[ch][1] = chData[s];
-              }
-
-            }
-          }
-        }
-        var linLevelBufs = new Array<any>(chs);
-        for (let ch = 0; ch < chs; ch++) {
-          linLevelBufs[ch] = linLevels[ch].buffer;
-        }
-        postMessage({streamFinished: false, frameLength: frameLength, linLevelBuffers: linLevelBufs}, linLevelBufs);
-      }
-    }
   }
 
   updateLevels(bufferLevelInfo: LevelInfo) {

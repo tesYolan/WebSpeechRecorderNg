@@ -82,7 +82,8 @@ declare function postMessage (message:any, transfer:Array<any>):void;
        let dataChkByteLen=this.writeHeader(audioBuffer);
         if(!this.woStr) {
 
-          let wb = new Blob(['(' + this.workerFunction.toString() + ')();'], {type: 'text/javascript'});
+          //let wb = new Blob([ this.workerFunction.toString() + '();'], {type: 'text/javascript'});
+          let wb = new Blob([`${this.workerFunction.toString()}; ${this.workerFunction.name}(self);`]);
           this.woStr = window.URL.createObjectURL(wb);
         }
          let wo = new Worker(this.woStr);
