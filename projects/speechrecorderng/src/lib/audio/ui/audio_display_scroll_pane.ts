@@ -56,7 +56,7 @@ export class AudioDisplayScrollPane {
   zoomFixFitToPanelAction:Action=new Action("Fix fit to panel");
 
 
-  @ViewChild(AudioClipUIContainer)
+  @ViewChild(AudioClipUIContainer, { static: true })
   private ac: AudioClipUIContainer;
 
 

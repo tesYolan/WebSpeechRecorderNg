@@ -24,7 +24,8 @@
             "styles": [
               "src/main.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "webWorkerTsConfig": "tsconfig.worker.json"
           },
           "configurations": {
             "production": {
@@ -86,7 +87,8 @@
           "options": {
             "tsConfig": [
               "src/tsconfig.app.json",
-              "src/tsconfig.spec.json"
+              "src/tsconfig.spec.json",
+              "tsconfig.worker.json"
             ],
             "exclude": []
           }
@@ -142,7 +144,8 @@
           "options": {
             "tsConfig": [
               "projects/speechrecorderng/tsconfig.lib.json",
-              "projects/speechrecorderng/tsconfig.spec.json"
+              "projects/speechrecorderng/tsconfig.spec.json",
+              "projects/speechrecorderng/tsconfig.worker.json"
             ],
             "exclude": [
               "**/node_modules/**"
