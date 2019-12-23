@@ -1,5 +1,5 @@
-declare var self: DedicatedWorkerGlobalScope;
-export {};
+//declare var self: DedicatedWorkerGlobalScope;
+//export {};
 declare function postMessage(message: any, transfer: Array<any>): void;
 
 // Redefine some DSP classes for worker function
@@ -236,20 +236,20 @@ class GaussianWindow implements WindowFunction {
 
 }
 
-self.onmessage = function (msg) {
+addEventListener('message', ({ data }) => {
 
-  let l = msg.data.l;
-  let w = msg.data.w;
-  let h = msg.data.h;
-  let vw = msg.data.vw;
-  let chs = msg.data.chs;
+  let l = data.l;
+  let w = data.w;
+  let h = data.h;
+  let vw = data.vw;
+  let chs = data.chs;
   let audioData = new Array(chs);
   for (let ch = 0; ch < chs; ch++) {
-    audioData[ch] = new Float32Array(msg.data['audioData'][ch]);
+    audioData[ch] = new Float32Array(data['audioData'][ch]);
   }
 
-  let frameLength = msg.data.frameLength;
-  let dftSize = msg.data.dftSize;
+  let frameLength = data.frameLength;
+  let dftSize = data.dftSize;
 
   let dftBands = dftSize / 2;
   let dft = new DFTFloat32(dftSize);
@@ -362,5 +362,5 @@ self.onmessage = function (msg) {
       }
     }
   }
-  postMessage({imgData: imgData, l: l, w: msg.data.w, h: msg.data.h, vw: vw}, [imgData.buffer]);
-}
+  postMessage({imgData: imgData, l: l, w: data.w, h: data.h, vw: vw}, [imgData.buffer]);
+})

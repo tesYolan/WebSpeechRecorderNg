@@ -1,16 +1,17 @@
-declare var self: DedicatedWorkerGlobalScope;
-export {};
+
+//declare var self: DedicatedWorkerGlobalScope;
+//export {};
 declare function postMessage(message: any, transfer: Array<any>): void;
 
-self.onmessage = function (msg) {
+addEventListener('message', ({ data }) => {
 
-  let audioData = msg.data.audioData;
-  let l=msg.data.l;
-  let w = msg.data.w;
-  let h = msg.data.h;
-  let vw=msg.data.vw;
-  let chs = msg.data.chs;
-  let frameLength = msg.data.frameLength;
+  let audioData = data.audioData;
+  let l= data.l;
+  let w = data.w;
+  let h = data.h;
+  let vw = data.vw;
+  let chs = data.chs;
+  let frameLength = data.frameLength;
   let psMinMax= new Float32Array(0);
 
   if(audioData && w>=0 && vw>0) {
@@ -60,5 +61,5 @@ self.onmessage = function (msg) {
   }
 
 
-  postMessage({psMinMax: psMinMax, l:msg.data.l,t:msg.data.t,w: msg.data.w, h: msg.data.h, chs: msg.data.chs}, [psMinMax.buffer]);
-}
+  postMessage({psMinMax: psMinMax, l:data.l,t:data.t,w: data.w, h: data.h, chs: data.chs}, [psMinMax.buffer]);
+})
