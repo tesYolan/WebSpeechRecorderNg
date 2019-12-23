@@ -123,7 +123,6 @@ export class LevelMeasure {
   bufferLevelInfos: Array<LevelInfo>;
   peakLevelInfo: LevelInfo;
 
-  private workerFunctionURL: string;
   private worker: Worker;
 
   private bufferIndex: number = 0;
@@ -132,10 +131,6 @@ export class LevelMeasure {
   levelListener: LevelListener;
 
   constructor() {
-
-    let workerFunctionBlob = new Blob(['(' + this.workerFunction.toString() + ')();'], {type: 'text/javascript'});
-    this.workerFunctionURL = window.URL.createObjectURL(workerFunctionBlob);
-
   }
 
   calcBufferLevelInfos(audioBuffer: AudioBuffer, bufferTimeLength: number): Promise<LevelInfos> {
@@ -150,7 +145,7 @@ export class LevelMeasure {
         buffers[ch] = adChCopy.buffer;
       }
 
-      this.worker = new Worker(this.workerFunctionURL);
+      this.worker = new Worker('./level_measure.worker', { type: `module` });
       this.worker.onmessage = (me) => {
 
         let linLevelArrs=new Array<Float32Array>(chs);
