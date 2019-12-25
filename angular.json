@@ -25,7 +25,7 @@
               "src/main.scss"
             ],
             "scripts": [],
-            "webWorkerTsConfig": "tsconfig.worker.json"
+            "webWorkerTsConfig": "projects/speechrecorderng/tsconfig.worker.json"
           },
           "configurations": {
             "production": {
@@ -144,8 +144,8 @@
           "options": {
             "tsConfig": [
               "projects/speechrecorderng/tsconfig.lib.json",
-              "projects/speechrecorderng/tsconfig.spec.json",
-              "projects/speechrecorderng/tsconfig.worker.json"
+              "projects/speechrecorderng/tsconfig.spec.json"
+
             ],
             "exclude": [
               "**/node_modules/**"

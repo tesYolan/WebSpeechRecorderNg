@@ -1,7 +1,6 @@
 import { WavFileFormat } from './wavformat'
 import { PCMAudioFormat } from '../format'
 import { BinaryByteWriter } from '../../io/BinaryWriter'
-declare function postMessage (message:any, transfer:Array<any>):void;
 
 
    export class WavWriter {
@@ -12,35 +11,9 @@ declare function postMessage (message:any, transfer:Array<any>):void;
      private format:PCMAudioFormat;
      private dataLength:number;
 
-     private woStr:string;
-
      constructor() {
        this.bw = new BinaryByteWriter();
      }
-
-     workerFunction() {
-       self.onmessage = function (msg) {
-
-         let bufLen=msg.data.frameLength * msg.data.chs;
-         let valView = new DataView(msg.data.buf,msg.data.bufPos);
-
-         let bufPos = 0;
-         let hDynIntRange = 1 << (msg.data.sampleSizeInBits - 1);
-         for (let s = 0; s < msg.data.frameLength; s++) {
-           // interleaved channel data
-
-           for (let ch = 0; ch < msg.data.chs; ch++) {
-             let srcPos=(ch*msg.data.frameLength)+s;
-             let valFlt = msg.data.audioData[srcPos];
-             let valInt = Math.round(valFlt * hDynIntRange);
-             valView.setInt16(bufPos, valInt, true);
-             bufPos+=2;
-           }
-         }
-         postMessage({buf:msg.data.buf}, [msg.data.buf]);
-       }
-     }
-
 
      writeFmtChunk(audioBuffer:AudioBuffer){
 
@@ -80,12 +53,8 @@ declare function postMessage (message:any, transfer:Array<any>):void;
      writeAsync(audioBuffer:AudioBuffer,callback: (wavFileData:Uint8Array)=> any){
 
        let dataChkByteLen=this.writeHeader(audioBuffer);
-        if(!this.woStr) {
 
-          let wb = new Blob(['(' + this.workerFunction.toString() + ')();'], {type: 'text/javascript'});
-          this.woStr = window.URL.createObjectURL(wb);
-        }
-         let wo = new Worker(this.woStr);
+         let wo = new Worker('./wavwriter.worker',{type: 'module'});
 
        let chs = audioBuffer.numberOfChannels;
 
