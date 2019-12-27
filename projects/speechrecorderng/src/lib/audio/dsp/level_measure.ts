@@ -123,6 +123,7 @@ export class LevelMeasure {
   bufferLevelInfos: Array<LevelInfo>;
   peakLevelInfo: LevelInfo;
 
+  private workerURL: string;
   private worker: Worker;
 
   private bufferIndex: number = 0;
@@ -131,6 +132,54 @@ export class LevelMeasure {
   levelListener: LevelListener;
 
   constructor() {
+    let woFctStr = this.workerFunction.toString()
+    let woFctAnon = woFctStr.replace('workerFunction', 'function')
+    let wb = new Blob(['(' + woFctAnon + ')();'], {type: 'text/javascript'});
+    this.workerURL = window.URL.createObjectURL(wb);
+  }
+
+  workerFunction() {
+    self.addEventListener('message', function (_a) {
+      var data = _a.data;
+      var chs = data.chs;
+      var bufferFrameLength = data.bufferFrameLength;
+      var audioData = new Array(chs);
+      var linLevels = new Array(chs);
+      for (var ch_1 = 0; ch_1 < chs; ch_1++) {
+        audioData[ch_1] = new Float32Array(data.audioData[ch_1]);
+      }
+      var frameLength = audioData[0].length;
+      var bufferCount = Math.ceil(frameLength / bufferFrameLength);
+      for (var ch_2 = 0; ch_2 < chs; ch_2++) {
+        linLevels[ch_2] = new Float32Array(bufferCount * 2);
+      }
+      if (audioData && chs > 0) {
+        for (var ch = 0; ch < chs; ch++) {
+          var chData = audioData[ch];
+          for (var s = 0; s < frameLength; s++) {
+            var bi = Math.floor(s / bufferFrameLength);
+            var lvlArrPos = bi * 2;
+            var bs = s % bufferFrameLength;
+            if (chData[s] < linLevels[ch][lvlArrPos]) {
+              linLevels[ch][lvlArrPos] = chData[s];
+            }
+            lvlArrPos++;
+            if (chData[s] > linLevels[ch][lvlArrPos]) {
+              linLevels[ch][lvlArrPos] = chData[s];
+            }
+          }
+        }
+        var linLevelBufs = new Array(chs);
+        for (var ch_3 = 0; ch_3 < chs; ch_3++) {
+          linLevelBufs[ch_3] = linLevels[ch_3].buffer;
+        }
+        postMessage({
+          bufferFrameLength: bufferFrameLength,
+          frameLength: frameLength,
+          linLevelBuffers: linLevelBufs
+        }, linLevelBufs);
+      }
+    });
   }
 
   calcBufferLevelInfos(audioBuffer: AudioBuffer, bufferTimeLength: number): Promise<LevelInfos> {
@@ -145,7 +194,7 @@ export class LevelMeasure {
         buffers[ch] = adChCopy.buffer;
       }
 
-      this.worker = new Worker('./level_measure.worker', { type: `module` });
+      this.worker = new Worker(this.workerURL);
       this.worker.onmessage = (me) => {
 
         let linLevelArrs=new Array<Float32Array>(chs);
@@ -193,6 +242,7 @@ export class StreamLevelMeasure implements SequenceAudioFloat32OutStream {
   currentLevelInfos: LevelInfo;
   peakLevelInfo: LevelInfo;
 
+  private workerURL: string;
   private worker: Worker;
   private channelCount: number;
   private bufferIndex: number = 0;
@@ -201,13 +251,18 @@ export class StreamLevelMeasure implements SequenceAudioFloat32OutStream {
   levelListener: LevelListener;
 
   constructor() {
+
+    let woFctStr = this.workerFunction.toString()
+    let woFctAnon = woFctStr.replace('workerFunction', 'function')
+    let wb = new Blob(['(' + woFctAnon + ')();'], {type: 'text/javascript'});
+    this.workerURL = window.URL.createObjectURL(wb);
   }
 
   setFormat(channels: number, sampleRate: number) {
     this.channelCount = channels;
     this.currentLevelInfos = new LevelInfo(this.channelCount);
     this.peakLevelInfo = new LevelInfo(this.channelCount);
-    this.worker = new Worker('./stream_level_measure.worker', { type: `module` });
+    this.worker = new Worker(this.workerURL);
     this.worker.onmessage = (me) => {
       let streamFinished = me.data.streamFinished;
       if (streamFinished) {
@@ -269,6 +324,49 @@ export class StreamLevelMeasure implements SequenceAudioFloat32OutStream {
     if (this.worker) {
       this.worker.terminate();
     }
+
+  }
+
+
+  workerFunction() {
+    self.addEventListener('message', function (_a) {
+      var data = _a.data;
+      var streamFinished = data.streamFinished;
+      if (streamFinished) {
+        postMessage({ streamFinished: true });
+      }
+      else {
+        var chs = data.chs;
+        var frameLength = null;
+        var audioData = new Array(chs);
+        var linLevels = new Array(chs);
+        for (var ch_1 = 0; ch_1 < chs; ch_1++) {
+          linLevels[ch_1] = new Float32Array(2);
+          audioData[ch_1] = new Float32Array(data.audioData[ch_1]);
+        }
+        if (audioData) {
+          for (var ch = 0; ch < chs; ch++) {
+            var chData = audioData[ch];
+            if (frameLength === null) {
+              frameLength = chData.length;
+            }
+            for (var s = 0; s < frameLength; s++) {
+              if (chData[s] < linLevels[ch][0]) {
+                linLevels[ch][0] = chData[s];
+              }
+              if (chData[s] > linLevels[ch][1]) {
+                linLevels[ch][1] = chData[s];
+              }
+            }
+          }
+        }
+        var linLevelBufs = new Array(chs);
+        for (var ch_2 = 0; ch_2 < chs; ch_2++) {
+          linLevelBufs[ch_2] = linLevels[ch_2].buffer;
+        }
+        postMessage({ streamFinished: false, frameLength: frameLength, linLevelBuffers: linLevelBufs }, linLevelBufs);
+      }
+    });
 
   }
 

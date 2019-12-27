@@ -25,7 +25,7 @@
               "src/main.scss"
             ],
             "scripts": [],
-            "webWorkerTsConfig": "projects/speechrecorderng/tsconfig.worker.json"
+            "webWorkerTsConfig": "tsconfig.worker.json"
           },
           "configurations": {
             "production": {
