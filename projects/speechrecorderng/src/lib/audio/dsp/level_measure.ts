@@ -132,54 +132,10 @@ export class LevelMeasure {
   levelListener: LevelListener;
 
   constructor() {
-    let woFctStr = this.workerFunction.toString()
-    let woFctAnon = woFctStr.replace('workerFunction', 'function')
-    let wb = new Blob(['(' + woFctAnon + ')();'], {type: 'text/javascript'});
+    let woFctStr = this.function.toString()
+    //let woFctAnon = woFctStr.replace('workerFunction', 'function')
+    let wb = new Blob(['(' + woFctStr + ')();'], {type: 'text/javascript'});
     this.workerURL = window.URL.createObjectURL(wb);
-  }
-
-  workerFunction() {
-    self.addEventListener('message', function (_a) {
-      var data = _a.data;
-      var chs = data.chs;
-      var bufferFrameLength = data.bufferFrameLength;
-      var audioData = new Array(chs);
-      var linLevels = new Array(chs);
-      for (var ch_1 = 0; ch_1 < chs; ch_1++) {
-        audioData[ch_1] = new Float32Array(data.audioData[ch_1]);
-      }
-      var frameLength = audioData[0].length;
-      var bufferCount = Math.ceil(frameLength / bufferFrameLength);
-      for (var ch_2 = 0; ch_2 < chs; ch_2++) {
-        linLevels[ch_2] = new Float32Array(bufferCount * 2);
-      }
-      if (audioData && chs > 0) {
-        for (var ch = 0; ch < chs; ch++) {
-          var chData = audioData[ch];
-          for (var s = 0; s < frameLength; s++) {
-            var bi = Math.floor(s / bufferFrameLength);
-            var lvlArrPos = bi * 2;
-            var bs = s % bufferFrameLength;
-            if (chData[s] < linLevels[ch][lvlArrPos]) {
-              linLevels[ch][lvlArrPos] = chData[s];
-            }
-            lvlArrPos++;
-            if (chData[s] > linLevels[ch][lvlArrPos]) {
-              linLevels[ch][lvlArrPos] = chData[s];
-            }
-          }
-        }
-        var linLevelBufs = new Array(chs);
-        for (var ch_3 = 0; ch_3 < chs; ch_3++) {
-          linLevelBufs[ch_3] = linLevels[ch_3].buffer;
-        }
-        postMessage({
-          bufferFrameLength: bufferFrameLength,
-          frameLength: frameLength,
-          linLevelBuffers: linLevelBufs
-        }, linLevelBufs);
-      }
-    });
   }
 
   calcBufferLevelInfos(audioBuffer: AudioBuffer, bufferTimeLength: number): Promise<LevelInfos> {
@@ -234,6 +190,52 @@ export class LevelMeasure {
     this.worker.terminate();
 
   }
+
+  function() {
+    self.onmessage = function (msg) {
+
+      let chs = msg.data.chs;
+      let bufferFrameLength = msg.data.bufferFrameLength;
+
+      var audioData = new Array<Float32Array>(chs);
+      var linLevels = new Array<Float32Array>(chs);
+
+      for (let ch = 0; ch < chs; ch++) {
+
+        audioData[ch] = new Float32Array(msg.data.audioData[ch]);
+      }
+      let frameLength = audioData[0].length;
+      let bufferCount=Math.ceil(frameLength/bufferFrameLength);
+      for (let ch = 0; ch < chs; ch++) {
+        linLevels[ch] = new Float32Array(bufferCount*2);
+      }
+      if (audioData && chs > 0) {
+        for (var ch = 0; ch < chs; ch++) {
+          let chData = audioData[ch];
+
+          for (let s = 0; s < frameLength; s++) {
+            let bi = Math.floor(s / bufferFrameLength);
+            let lvlArrPos = bi * 2;
+            let bs = s % bufferFrameLength;
+
+            if (chData[s] < linLevels[ch][lvlArrPos]) {
+              linLevels[ch][lvlArrPos] = chData[s];
+            }
+            lvlArrPos++;
+            if (chData[s] > linLevels[ch][lvlArrPos]) {
+              linLevels[ch][lvlArrPos] = chData[s];
+            }
+          }
+        }
+        var linLevelBufs = new Array<any>(chs);
+        for (let ch = 0; ch < chs; ch++) {
+          linLevelBufs[ch] = linLevels[ch].buffer;
+        }
+        postMessage({bufferFrameLength:bufferFrameLength,frameLength:frameLength,linLevelBuffers: linLevelBufs}, linLevelBufs);
+
+      }
+    }
+  }
 }
 
 
@@ -252,9 +254,9 @@ export class StreamLevelMeasure implements SequenceAudioFloat32OutStream {
 
   constructor() {
 
-    let woFctStr = this.workerFunction.toString()
-    let woFctAnon = woFctStr.replace('workerFunction', 'function')
-    let wb = new Blob(['(' + woFctAnon + ')();'], {type: 'text/javascript'});
+    let woFctStr = this.function.toString()
+    //let woFctAnon = woFctStr.replace('workerFunction', 'function')
+    let wb = new Blob(['(' + woFctStr + ')();'], {type: 'text/javascript'});
     this.workerURL = window.URL.createObjectURL(wb);
   }
 
@@ -328,29 +330,29 @@ export class StreamLevelMeasure implements SequenceAudioFloat32OutStream {
   }
 
 
-  workerFunction() {
-    self.addEventListener('message', function (_a) {
-      var data = _a.data;
-      var streamFinished = data.streamFinished;
+  function() {
+    self.onmessage = function (msg) {
+      let streamFinished = msg.data.streamFinished;
       if (streamFinished) {
         postMessage({ streamFinished: true });
+
+      } else {
+        var chs = msg.data.chs;
+        let frameLength = null;
+        var audioData = new Array<Float32Array>(chs);
+        var linLevels = new Array<Float32Array>(chs);
+        for (let ch = 0; ch < chs; ch++) {
+          linLevels[ch] = new Float32Array(2);
+          audioData[ch] = new Float32Array(msg.data.audioData[ch]);
       }
-      else {
-        var chs = data.chs;
-        var frameLength = null;
-        var audioData = new Array(chs);
-        var linLevels = new Array(chs);
-        for (var ch_1 = 0; ch_1 < chs; ch_1++) {
-          linLevels[ch_1] = new Float32Array(2);
-          audioData[ch_1] = new Float32Array(data.audioData[ch_1]);
-        }
+
         if (audioData) {
           for (var ch = 0; ch < chs; ch++) {
-            var chData = audioData[ch];
+            let chData = audioData[ch];
             if (frameLength === null) {
               frameLength = chData.length;
             }
-            for (var s = 0; s < frameLength; s++) {
+            for (let s = 0; s < frameLength; s++) {
               if (chData[s] < linLevels[ch][0]) {
                 linLevels[ch][0] = chData[s];
               }
@@ -360,14 +362,13 @@ export class StreamLevelMeasure implements SequenceAudioFloat32OutStream {
             }
           }
         }
-        var linLevelBufs = new Array(chs);
-        for (var ch_2 = 0; ch_2 < chs; ch_2++) {
-          linLevelBufs[ch_2] = linLevels[ch_2].buffer;
+        var linLevelBufs = new Array<any>(chs);
+        for (let ch = 0; ch < chs; ch++) {
+          linLevelBufs[ch] = linLevels[ch].buffer;
         }
         postMessage({ streamFinished: false, frameLength: frameLength, linLevelBuffers: linLevelBufs }, linLevelBufs);
       }
-    });
-
+    }
   }
 
   updateLevels(bufferLevelInfo: LevelInfo) {

@@ -56,9 +56,9 @@ export class Sonagram extends AudioCanvasLayerComponent {
         this.dft = new DFTFloat32(this.dftSize);
         //let wb = new Blob(['(' + this.workerFunction.toString() + ')();'], {type: 'text/javascript'});
         //this.workerURL = window.URL.createObjectURL(wb);
-        let woFctStr=this.workerFunction.toString()
-        let woFctAnon=woFctStr.replace('workerFunction','function')
-        let wb = new Blob([ '('+woFctAnon+ ')();'], {type: 'text/javascript'});
+        let woFctStr=this.function.toString()
+        //let woFctAnon=woFctStr.replace('workerFunction','function')
+        let wb = new Blob([ '('+woFctStr+ ')();'], {type: 'text/javascript'});
         this.workerURL = window.URL.createObjectURL(wb);
     }
 
@@ -202,69 +202,94 @@ export class Sonagram extends AudioCanvasLayerComponent {
     // }
 
 
-    workerFunction() {
+    function() {
         // Redefine some DSP classes for worker function
         // See e.g. audio.math.Complex
-        var Complex = /** @class */ (function () {
-            function Complex(real, img) {
+        class Complex {
+
+            real: number;
+            img: number;
+
+            public static fromPolarForm(magnitude: number, argument: number): Complex {
+                const r = Math.cos(argument) * magnitude;
+                const i = Math.sin(argument) * magnitude;
+                return new Complex(r, i);
+            }
+
+            constructor(real: number, img: number) {
                 this.real = real;
                 this.img = img;
             }
-            Complex.fromPolarForm = function (magnitude, argument) {
-                var r = Math.cos(argument) * magnitude;
-                var i = Math.sin(argument) * magnitude;
-                return new Complex(r, i);
-            };
-            Complex.prototype.magnitude = function () {
+
+            public magnitude(): number {
                 return Math.sqrt((this.real * this.real) + (this.img * this.img));
-            };
-            Complex.prototype.argument = function () {
+            }
+
+            public argument(): number {
                 return Math.atan2(this.img, this.real);
-            };
-            Complex.prototype.add = function (addC) {
+            }
+
+            public add(addC: Complex): Complex {
                 return new Complex(this.real + addC.real, this.img + addC.img);
-            };
-            Complex.prototype.sub = function (subC) {
+            }
+
+            public sub(subC: Complex): Complex {
                 return new Complex(this.real - subC.real, this.img - subC.img);
-            };
-            Complex.prototype.mult = function (multC) {
-                var multR = (this.real * multC.real) - (this.img * multC.img);
-                var multI = (this.real * multC.img) + (multC.real * this.img);
+            }
+
+            public mult(multC: Complex): Complex {
+                const multR = (this.real * multC.real) - (this.img * multC.img);
+                const multI = (this.real * multC.img) + (multC.real * this.img);
                 return new Complex(multR, multI);
-            };
-            Complex.prototype.multReal = function (multF) {
+            }
+
+            public multReal(multF: number): Complex {
                 return new Complex(this.real * multF, this.img * multF);
-            };
-            Complex.prototype.div = function (divisor) {
-                var divReal = divisor.real;
-                var divImg = divisor.img;
-                var div = (divReal * divReal) + (divImg * divImg);
-                var divisionReal = ((this.real * divReal) + (this.img * divImg)) / div;
-                var divisionImg = ((divReal * this.img) - (this.real * divImg)) / div;
+            }
+
+            public div(divisor: Complex): Complex {
+                const divReal = divisor.real;
+                const divImg = divisor.img;
+                const div = (divReal * divReal) + (divImg * divImg);
+                const divisionReal = ((this.real * divReal) + (this.img * divImg)) / div;
+                const divisionImg = ((divReal * this.img) - (this.real * divImg)) / div;
+
                 return new Complex(divisionReal, divisionImg);
-            };
-            Complex.prototype.divReal = function (divisor) {
-                var div = divisor * divisor;
-                var divsionReal = (this.real * divisor) / div;
-                var divsionImg = (divisor * this.img) / div;
+            }
+
+            public divReal(divisor: number): Complex {
+                const div = divisor * divisor;
+                const divsionReal = (this.real * divisor) / div;
+                const divsionImg = (divisor * this.img) / div;
+
                 return new Complex(divsionReal, divsionImg);
-            };
-            Complex.prototype.conjugate = function () {
+            }
+
+            public conjugate(): Complex {
                 return new Complex(this.real, -this.img);
-            };
-            Complex.prototype.equals = function (c) {
+            }
+
+            public equals(c: Complex): boolean {
                 if (c === null) {
                     return false;
                 }
                 return (this.real === c.real && this.img === c.img);
-            };
-            Complex.prototype.toString = function () {
+            }
+
+            public toString(): string {
                 return 'Real: ' + this.real + ', Img: ' + this.img;
-            };
-            return Complex;
-        }());
-        var DFTFloat32 = /** @class */ (function () {
-            function DFTFloat32(n) {
+            }
+        }
+
+        class DFTFloat32 {
+
+            private n: number;
+            private m: number;
+
+            private cosLookup: Float32Array;
+            private sinLookup: Float32Array;
+
+            constructor(n: number) {
                 this.n = n;
                 this.m = Math.log(n) / Math.log(2);
                 // if(n != (1 << m))throw new RuntimeException("length N must be power of 2");
@@ -277,44 +302,48 @@ export class Sonagram extends AudioCanvasLayerComponent {
                     this.sinLookup[i] = Math.sin(arc);
                 }
             }
-            DFTFloat32.prototype.processReal = function (srcBuf) {
-                var x = srcBuf.slice();
-                var y = new Float32Array(srcBuf.length);
-                for (var yi = 0; yi < y.length; yi++) {
+
+            public processReal(srcBuf: Float32Array): Array<Complex> {
+                const x = srcBuf.slice();
+                const y = new Float32Array(srcBuf.length);
+                for (let yi = 0; yi < y.length; yi++) {
                     y[yi] = 0.0;
                 }
                 this.fftCooleyTukey(x, y);
-                var rc = new Array(x.length);
-                for (var i = 0; i < x.length; i++) {
+                const rc = new Array<Complex>(x.length);
+                for (let i = 0; i < x.length; i++) {
                     rc[i] = new Complex(x[i], y[i]);
                 }
                 return rc;
-            };
-            DFTFloat32.prototype.processRealMagnitude = function (srcBuf) {
-                var x = srcBuf.slice();
-                var y = new Float32Array(srcBuf.length);
-                for (var yi = 0; yi < y.length; yi++) {
+            }
+
+            public processRealMagnitude(srcBuf: Float32Array): Float32Array {
+                const x = srcBuf.slice();
+                const y = new Float32Array(srcBuf.length);
+                for (let yi = 0; yi < y.length; yi++) {
                     y[yi] = 0.0;
                 }
                 this.fftCooleyTukey(x, y);
-                var rc = new Float32Array(x.length);
-                for (var i = 0; i < x.length; i++) {
-                    var rcc = new Complex(x[i], y[i]);
+                const rc = new Float32Array(x.length);
+                for (let i = 0; i < x.length; i++) {
+                    const rcc = new Complex(x[i], y[i]);
                     rc[i] = rcc.magnitude();
                 }
                 return rc;
-            };
-            DFTFloat32.prototype.fftCooleyTukey = function (real, img) {
-                var i;
-                var j = 0;
-                var k;
-                var n1;
-                var n2 = this.n / 2;
-                var a;
-                var c;
-                var s;
-                var t1;
-                var t2;
+            }
+
+            public fftCooleyTukey(real: Float32Array, img: Float32Array): void {
+                let i: number;
+                let j = 0;
+                let k: number;
+                let n1: number;
+                let n2: number = this.n / 2;
+                let a: number;
+                let c: number;
+                let s: number;
+                let t1: number;
+                let t2: number;
+
                 for (i = 1; i < this.n - 1; i++) {
                     n1 = n2;
                     while (j >= n1) {
@@ -351,87 +380,110 @@ export class Sonagram extends AudioCanvasLayerComponent {
                         }
                     }
                 }
-            };
-            DFTFloat32.prototype.process = function (t) {
-                var reals = new Float32Array(this.n);
-                var imgs = new Float32Array(this.n);
-                var trans = new Array(this.n);
-                for (var i = 0; i < this.n; i++) {
+            }
+
+
+            public process(t: Array<Complex>): Array<Complex> {
+                const reals: Float32Array = new Float32Array(this.n);
+                const imgs: Float32Array = new Float32Array(this.n);
+                const trans: Array<Complex> = new Array<Complex>(this.n);
+                for (let i = 0; i < this.n; i++) {
                     reals[i] = t[i].real;
                     imgs[i] = t[i].img;
                 }
                 this.fftCooleyTukey(reals, imgs);
-                for (var i = 0; i < this.n; i++) {
+                for (let i = 0; i < this.n; i++) {
                     trans[i] = new Complex(reals[i], imgs[i]);
                 }
                 return trans;
-            };
-            return DFTFloat32;
-        }());
-        var GaussianWindow = /** @class */ (function () {
-            function GaussianWindow(size, sigma) {
-                if (sigma === void 0) { sigma = GaussianWindow.DEFAULT_SIGMA; }
+
+
+            }
+
+        }
+
+        interface WindowFunction {
+            getScale(i: number): number;
+        }
+
+        class GaussianWindow implements WindowFunction {
+
+            public static DEFAULT_SIGMA = 0.3;
+            // Gaussian window function,
+            // http://reference.wolfram.com/language/ref/GaussianWindow.html
+            // val=exp(-50*x*x/9) => sigma=0.3
+
+            private buf: Float32Array;
+
+            constructor(size: number, sigma: number = GaussianWindow.DEFAULT_SIGMA) {
                 this.buf = new Float32Array(size);
-                var center = (size - 1) / 2;
-                for (var i = 0; i < size; i++) {
-                    var quot = (i - center) / (sigma * center);
-                    var exp = -0.5 * quot * quot;
+                const center = (size - 1) / 2;
+                for (let i = 0; i < size; i++) {
+                    const quot = (i - center) / (sigma * center);
+                    const exp = -0.5 * quot * quot;
                     this.buf[i] = Math.exp(exp);
                 }
             }
-            GaussianWindow.prototype.getScale = function (i) {
+
+            getScale(i: number): number {
                 return this.buf[i];
-            };
-            GaussianWindow.DEFAULT_SIGMA = 0.3;
-            return GaussianWindow;
-        }());
-        addEventListener('message', function (_a) {
-            var data = _a.data;
-            var l = data.l;
-            var w = data.w;
-            var h = data.h;
-            var vw = data.vw;
-            var chs = data.chs;
-            var audioData = new Array(chs);
-            for (var ch = 0; ch < chs; ch++) {
-                audioData[ch] = new Float32Array(data['audioData'][ch]);
             }
-            var frameLength = data.frameLength;
-            var dftSize = data.dftSize;
-            var dftBands = dftSize / 2;
-            var dft = new DFTFloat32(dftSize);
-            var wf = new GaussianWindow(dftSize,GaussianWindow.DEFAULT_SIGMA);
-            var arrSize = w * h * 4;
+
+            }
+
+        self.onmessage = function (msg) {
+
+            let l = msg.data.l;
+            let w = msg.data.w;
+            let h = msg.data.h;
+            let vw = msg.data.vw;
+            let chs = msg.data.chs;
+            let audioData = new Array(chs);
+            for (let ch = 0; ch < chs; ch++) {
+                audioData[ch] = new Float32Array(msg.data['audioData'][ch]);
+            }
+
+            let frameLength = msg.data.frameLength;
+            let dftSize = msg.data.dftSize;
+
+            let dftBands = dftSize / 2;
+            let dft = new DFTFloat32(dftSize);
+            let wf = new GaussianWindow(dftSize);
+
+            let arrSize=w*h*4;
             if (arrSize < 0) {
-                arrSize = 0;
+                arrSize=0
             }
-            var imgData = new Uint8ClampedArray(arrSize);
+            let imgData = new Uint8ClampedArray(arrSize);
             //console.log("Render method:");
             if (audioData && arrSize > 0) {
-                var chH = Math.round(h / chs);
-                var framesPerPixel = frameLength / vw;
+                let chH = Math.round(h / chs);
+                let framesPerPixel = frameLength / vw;
                 //console.log("Render: ", w, "x", h);
-                var b = new Float32Array(dftSize);
-                var sona = new Array(chs);
-                var maxPsd = -Infinity;
-                var p = 0;
-                for (var ch = 0; ch < chs; ch++) {
+
+                let b = new Float32Array(dftSize);
+                let sona = new Array(chs);
+
+                let maxPsd = -Infinity;
+                let p = 0;
+                for (let ch = 0; ch < chs; ch++) {
                     p = ch * frameLength;
-                    var chDataLen = audioData[ch].length;
-                    var x = 0;
+                    let chDataLen=audioData[ch].length;
+                    let x = 0;
                     // initialize DFT array buffer
                     sona[ch] = new Array(w);
-                    var framePos = 0;
-                    for (var pii = 0; pii < w; pii++) {
-                        var virtPii = l + pii;
+                    let framePos = 0;
+                    for (let pii = 0; pii < w; pii++) {
+                        let virtPii = l + pii;
                         // Position of sample data frame is pixel position mapped to audio frame position.
                         // Then "center" the frame by shifting left by half the DFT size (=dftBands)
                         framePos = Math.round((virtPii * framesPerPixel) - dftBands);
                         // fill DFT buffer with windowed sample values
-                        for (var i = 0; i < dftSize; i++) {
-                            var samplePos = framePos + i;
+                        for (let i = 0; i < dftSize; i++) {
+                            let samplePos=framePos + i;
                             // initialize for negative sample positions and out of bounds positions
-                            var chDat = 0;
+                            let chDat=0;
+
                             // Set audio sample if available
                             if (samplePos >= 0 && samplePos < chDataLen) {
                                 chDat = audioData[ch][samplePos];
@@ -440,10 +492,11 @@ export class Sonagram extends AudioCanvasLayerComponent {
                             b[i] = chDat * wf.getScale(i);
                         }
                         // Calc DFT magnitudes
-                        var spectr = dft.processRealMagnitude(b);
+                        let spectr = dft.processRealMagnitude(b);
+
                         // Get maximum value of spectral energy
-                        for (var s = 0; s < dftBands; s++) {
-                            var psd = (2 * Math.pow(spectr[s], 2)) / dftBands;
+                        for (let s = 0; s < dftBands; s++) {
+                            let psd = (2 * Math.pow(spectr[s], 2)) / dftBands;
                             if (psd > maxPsd) {
                                 maxPsd = psd;
                             }
@@ -453,29 +506,32 @@ export class Sonagram extends AudioCanvasLayerComponent {
                     }
                 }
                 //maxPsd = (2 * Math.pow(max, 2)) / dftBands;
-                for (var ch = 0; ch < chs; ch++) {
-                    for (var pii = 0; pii < w; pii++) {
-                        var allBlack = true;
-                        for (var y = 0; y < chH; y++) {
-                            var freqIdx = Math.round(y * dftBands / chH);
+
+                for (let ch = 0; ch < chs; ch++) {
+
+                    for (let pii = 0; pii < w; pii++) {
+                        let allBlack = true;
+                        for (let y = 0; y < chH; y++) {
+                            let freqIdx = Math.round(y * dftBands / chH);
                             // calculate the one sided power spectral density PSD (f, t) in Pa2/Hz
                             // PSD(f) proportional to 2|X(f)|2 / (t2 - t1)
-                            var val = sona[ch][pii][freqIdx];
-                            var psd = (2 * Math.pow(val, 2)) / dftBands;
+                            let val = sona[ch][pii][freqIdx];
+                            let psd = (2 * Math.pow(val, 2)) / dftBands;
                             // Calculate logarithmic value
                             //let psdLog = ips.dsp.DSPUtils.toLevelInDB(psd / maxPsd);
-                            var linearLevel = psd / maxPsd;
-                            var psdLog = 10 * Math.log(linearLevel) / Math.log(10);
+                            let linearLevel = psd / maxPsd;
+                            let psdLog = 10 * Math.log(linearLevel) / Math.log(10);
                             // Fixed dynamic Range value of 70dB for now
-                            var dynRangeInDb = 70;
-                            var scaledVal = (psdLog + dynRangeInDb) / dynRangeInDb;
+                            let dynRangeInDb = 70;
+                            let scaledVal = (psdLog + dynRangeInDb) / dynRangeInDb;
+
                             // are the following checks necessary for clamped array ?
                             if (scaledVal > 1.0)
                                 scaledVal = 1;
                             if (scaledVal < 0.0) {
                                 scaledVal = 0;
                             }
-                            var rgbVal = Math.round(255 * scaledVal);
+                            let rgbVal = Math.round(255 * scaledVal);
                             if (rgbVal < 0) {
                                 //							System.out.println("Neg RGB val: "+rgbVal);
                                 rgbVal = 0;
@@ -487,8 +543,8 @@ export class Sonagram extends AudioCanvasLayerComponent {
                             if (rgbVal > 0) {
                                 allBlack = false;
                             }
-                            var py = chH - y;
-                            var dataPos = ((((ch * chH) + py) * w) + pii) * 4;
+                            let py = chH - y;
+                            let dataPos = ((((ch * chH) + py) * w) + pii) * 4;
                             imgData[dataPos + 0] = rgbVal; //R
                             imgData[dataPos + 1] = rgbVal; //G
                             imgData[dataPos + 2] = rgbVal; //B
@@ -500,10 +556,8 @@ export class Sonagram extends AudioCanvasLayerComponent {
                     }
                 }
             }
-            postMessage({ imgData: imgData, l: l, w: data.w, h: data.h, vw: vw }, [imgData.buffer]);
-        });
-
-
+            postMessage({imgData: imgData, l: l, w: msg.data.w, h: msg.data.h, vw: vw}, [imgData.buffer]);
+        }
     }
 
     startDraw(clear = true) {

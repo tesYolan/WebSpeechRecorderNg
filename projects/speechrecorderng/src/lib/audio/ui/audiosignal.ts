@@ -44,9 +44,10 @@ export class AudioSignal extends AudioCanvasLayerComponent{
   constructor(private ref: ElementRef) {
     super();
     this.wo = null;
-    let woFctStr=this.workerFunction.toString()
-    let woFctAnon=woFctStr.replace('workerFunction','function')
-    let wb = new Blob([ '('+woFctAnon+ ')();'], {type: 'text/javascript'});
+    let woFctStr=this.function.toString()
+    console.log(woFctStr)
+    //let woFctAnon=woFctStr.replace('workerFunction','function')
+    let wb = new Blob([ '('+woFctStr+ ')();'], {type: 'text/javascript'});
     this.workerURL = window.URL.createObjectURL(wb);
     this.audioData = null;
     this.markers = new Array<Marker>();
@@ -140,58 +141,67 @@ export class AudioSignal extends AudioCanvasLayerComponent{
     }
   }
 
+  function() {
+    addEventListener('message', ({ data }) => {
 
+      let audioData = data.audioData;
+      let l= data.l;
+      let w = data.w;
+      let h = data.h;
+      let vw = data.vw;
+      let chs = data.chs;
+      let frameLength = data.frameLength;
+      let psMinMax= new Float32Array(0);
 
-  workerFunction() {
-        self.addEventListener('message', function (_a) {
-          var data = _a.data;
-          var audioData = data.audioData;
-          var l = data.l;
-          var w = data.w;
-          var h = data.h;
-          var vw = data.vw;
-          var chs = data.chs;
-          var frameLength = data.frameLength;
-          var psMinMax = new Float32Array(0);
-          if (audioData && w >= 0 && vw > 0) {
-            var framesPerPixel = frameLength / vw;
-            var y = 0;
-            var pointsLen = w * chs;
-            // one for min one for max
-            var arrLen = pointsLen * 2;
-            psMinMax = new Float32Array(arrLen);
-            var chFramePos = 0;
-            for (var ch = 0; ch < chs; ch++) {
-              var x = 0;
-              chFramePos = ch * frameLength;
-              for (var pii = 0; pii < w; pii++) {
-                var virtPii = l + pii;
-                var pMin = Infinity;
-                var pMax = -Infinity;
-                var pixelFramePos = Math.round(chFramePos + (virtPii * framesPerPixel));
-                // calculate pixel min/max amplitude
-                for (var ai = 0; ai < framesPerPixel; ai++) {
-                  var framePos = pixelFramePos + ai;
-                  var a = 0;
-                  if (framePos >= 0 && framePos < audioData.length) {
-                    a = audioData[framePos];
-                  }
-                  if (a < pMin) {
-                    pMin = a;
-                  }
-                  if (a > pMax) {
-                    pMax = a;
-                  }
-                }
-                var psMinPos = ch * w + pii;
-                psMinMax[psMinPos] = pMin;
-                var psMaxPos = pointsLen + psMinPos;
-                psMinMax[psMaxPos] = pMax;
+      if(audioData && w>=0 && vw>0) {
+
+        let framesPerPixel = frameLength / vw;
+
+        let y = 0;
+        let pointsLen = w * chs;
+        // one for min one for max
+        let arrLen = pointsLen * 2;
+        psMinMax = new Float32Array(arrLen);
+        let chFramePos = 0;
+        for (let ch = 0; ch < chs; ch++) {
+          let x = 0;
+
+          chFramePos = ch * frameLength;
+          for (let pii = 0; pii < w; pii++) {
+            let virtPii=l+pii;
+            let pMin = Infinity;
+            let pMax = -Infinity;
+            let pixelFramePos = Math.round(chFramePos + (virtPii * framesPerPixel));
+
+            // calculate pixel min/max amplitude
+            for (let ai = 0; ai < framesPerPixel; ai++) {
+              let framePos = pixelFramePos + ai;
+
+              let a = 0;
+              if(framePos>=0 && framePos<audioData.length){
+                a=audioData[framePos];
+              }
+              if (a < pMin) {
+                pMin = a;
+              }
+              if (a > pMax) {
+                pMax = a;
               }
             }
+
+            let psMinPos = ch * w + pii;
+            psMinMax[psMinPos] = pMin;
+            let psMaxPos = pointsLen + psMinPos;
+            psMinMax[psMaxPos] = pMax;
+
           }
-          postMessage({ psMinMax: psMinMax, l: data.l, t: data.t, w: data.w, h: data.h, chs: data.chs }, [psMinMax.buffer]);
-        });
+
+        }
+      }
+
+
+      postMessage({psMinMax: psMinMax, l:data.l,t:data.t,w: data.w, h: data.h, chs: data.chs}, [psMinMax.buffer]);
+    })
   }
 
   startDraw(clear = true) {

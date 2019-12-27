@@ -1,8 +1,9 @@
 import { WavFileFormat } from './wavformat'
 import { PCMAudioFormat } from '../format'
 import { BinaryByteWriter } from '../../io/BinaryWriter'
+declare function postMessage (message:any, transfer:Array<any>):void;
 
-declare function postMessage(message: any, transfer?: Array<any>): void;
+
    export class WavWriter {
 
      static PCM:number = 1;
@@ -18,25 +19,27 @@ declare function postMessage(message: any, transfer?: Array<any>): void;
      }
 
 
-     workerFunction() {
-       self.addEventListener('message', function (_a) {
-         var data = _a.data;
-         var bufLen = data.frameLength * data.chs;
-         var valView = new DataView(data.buf, data.bufPos);
-         var bufPos = 0;
-         var hDynIntRange = 1 << (data.sampleSizeInBits - 1);
-         for (var s = 0; s < data.frameLength; s++) {
+     function() {
+       self.onmessage = function (msg) {
+
+         let bufLen=msg.data.frameLength * msg.data.chs;
+         let valView = new DataView(msg.data.buf,msg.data.bufPos);
+
+         let bufPos = 0;
+         let hDynIntRange = 1 << (msg.data.sampleSizeInBits - 1);
+         for (let s = 0; s < msg.data.frameLength; s++) {
            // interleaved channel data
-           for (var ch = 0; ch < data.chs; ch++) {
-             var srcPos = (ch * data.frameLength) + s;
-             var valFlt = data.audioData[srcPos];
-             var valInt = Math.round(valFlt * hDynIntRange);
+
+           for (let ch = 0; ch < msg.data.chs; ch++) {
+             let srcPos=(ch*msg.data.frameLength)+s;
+             let valFlt = msg.data.audioData[srcPos];
+             let valInt = Math.round(valFlt * hDynIntRange);
              valView.setInt16(bufPos, valInt, true);
              bufPos += 2;
            }
          }
-         postMessage({ buf: data.buf }, [data.buf]);
-       });
+         postMessage({buf:msg.data.buf}, [msg.data.buf]);
+       }
      }
 
 
@@ -79,9 +82,9 @@ declare function postMessage(message: any, transfer?: Array<any>): void;
 
        let dataChkByteLen = this.writeHeader(audioBuffer);
        if (!this.workerURL) {
-         let woFctStr = this.workerFunction.toString()
-         let woFctAnon = woFctStr.replace('workerFunction', 'function')
-         let wb = new Blob(['(' + woFctAnon + ')();'], {type: 'text/javascript'});
+         let woFctStr = this.function.toString()
+         //let woFctAnon = woFctStr.replace('workerFunction', 'function')
+         let wb = new Blob(['(' + woFctStr + ')();'], {type: 'text/javascript'});
          this.workerURL = window.URL.createObjectURL(wb);
        }
        let wo = new Worker(this.workerURL);
