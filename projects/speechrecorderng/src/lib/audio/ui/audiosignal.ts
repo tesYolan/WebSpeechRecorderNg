@@ -38,15 +38,13 @@ export class AudioSignal extends AudioCanvasLayerComponent{
 
   markers: Array<Marker>;
   private _playFramePosition: number;
-  private wo: Worker | null;
+  private worker: Worker | null;
   private workerURL: string;
 
   constructor(private ref: ElementRef) {
     super();
-    this.wo = null;
+    this.worker = null;
     let woFctStr=this.function.toString()
-    console.log(woFctStr)
-    //let woFctAnon=woFctStr.replace('workerFunction','function')
     let wb = new Blob([ '('+woFctStr+ ')();'], {type: 'text/javascript'});
     this.workerURL = window.URL.createObjectURL(wb);
     this.audioData = null;
@@ -141,6 +139,9 @@ export class AudioSignal extends AudioCanvasLayerComponent{
     }
   }
 
+  /*
+   *  Method used as worker code.
+   */
   function() {
     addEventListener('message', ({ data }) => {
 
@@ -224,9 +225,9 @@ export class AudioSignal extends AudioCanvasLayerComponent{
 
   private startRender() {
 
-    if (this.wo) {
-      this.wo.terminate();
-      this.wo = null;
+    if (this.worker) {
+      this.worker.terminate();
+      this.worker = null;
     }
     if (this.bounds && this.bounds.dimension) {
 
@@ -235,7 +236,7 @@ export class AudioSignal extends AudioCanvasLayerComponent{
 
       if (this.audioData && w>0 && h>0) {
         //this.wo = new Worker('./audiosignal.worker.js',{type: 'module'});
-        this.wo = new Worker(this.workerURL);
+        this.worker = new Worker(this.workerURL);
         //this.wo = new Worker('worker/audiosignal.worker.ts');
 
         //let Worker = require('worker!../../../workers/uploader/main');
@@ -250,17 +251,17 @@ export class AudioSignal extends AudioCanvasLayerComponent{
           ad.set(this.audioData.getChannelData(ch), ch * frameLength);
         }
         //let start = Date.now();
-        if (this.wo) {
-          this.wo.onmessage = (me) => {
+        if (this.worker) {
+          this.worker.onmessage = (me) => {
             //console.log("As rendertime: ", Date.now() - start);
             this.drawRendered(me);
-            if (this.wo) {
-              this.wo.terminate();
+            if (this.worker) {
+              this.worker.terminate();
             }
-            this.wo = null;
+            this.worker = null;
           }
         }
-        this.wo.postMessage({
+        this.worker.postMessage({
           l: Math.round(this.bounds.position.left),
           t: Math.round(this.bounds.position.top),
           w: w,

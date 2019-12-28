@@ -18,7 +18,9 @@ declare function postMessage (message:any, transfer:Array<any>):void;
 
      }
 
-
+     /*
+      *  Method used as worker code.
+      */
      function() {
        self.onmessage = function (msg) {
 
@@ -83,7 +85,6 @@ declare function postMessage (message:any, transfer:Array<any>):void;
        let dataChkByteLen = this.writeHeader(audioBuffer);
        if (!this.workerURL) {
          let woFctStr = this.function.toString()
-         //let woFctAnon = woFctStr.replace('workerFunction', 'function')
          let wb = new Blob(['(' + woFctStr + ')();'], {type: 'text/javascript'});
          this.workerURL = window.URL.createObjectURL(wb);
        }
