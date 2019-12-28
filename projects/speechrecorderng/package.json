@@ -1,6 +1,6 @@
 {
   "name": "speechrecorderng",
-  "version": "0.25.7",
+  "version": "0.25.8",
   "peerDependencies": {
 
     "@angular/animations": "^8.2.14",
@@ -16,7 +16,7 @@
     "@angular/router": "^8.2.14",
     "@angular/service-worker": "^8.2.14",
     "hammerjs": "^2.0.8",
-    "core-js": "^3.2.1",
+    "core-js": "^3.6.1",
     "zone.js": "^0.10.2"
 
   }
