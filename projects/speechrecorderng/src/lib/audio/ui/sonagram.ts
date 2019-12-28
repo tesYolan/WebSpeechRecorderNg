@@ -57,8 +57,9 @@ export class Sonagram extends AudioCanvasLayerComponent {
         //let wb = new Blob(['(' + this.workerFunction.toString() + ')();'], {type: 'text/javascript'});
         //this.workerURL = window.URL.createObjectURL(wb);
         let woFctStr=this.function.toString()
+        console.log(woFctStr)
         //let woFctAnon=woFctStr.replace('workerFunction','function')
-        let wb = new Blob([ '('+woFctStr+ ')();'], {type: 'text/javascript'});
+        let wb = new Blob([ '('+woFctStr+ ')();'], {type: 'application/x-typescript'});
         this.workerURL = window.URL.createObjectURL(wb);
     }
 
@@ -203,6 +204,14 @@ export class Sonagram extends AudioCanvasLayerComponent {
 
 
     function() {
+
+        // Test to check that the code is transpiled to ES2015
+        // enum is only available in TypeScript and is going to be transpiled
+
+        // enum Color {Red = 1, Green, Blue}
+        // let c: Color = Color.Green;
+        // console.log(c)
+
         // Redefine some DSP classes for worker function
         // See e.g. audio.math.Complex
         class Complex {
