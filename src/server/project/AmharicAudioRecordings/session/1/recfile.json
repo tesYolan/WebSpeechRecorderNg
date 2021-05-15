@@ -1,0 +1,20 @@
+[
+    {
+        "recordingFileId": "I0",
+        "session": "1",
+        "date": "2021-05-15T 14:52:31",
+        "recording": {
+            "mediaitems": [
+                {
+                    "annotationTemplate": true,
+                    "text": "This is something!"
+                }
+            ],
+            "itemcode": "N0",
+            "recduration": 246784,
+            "recinstructions": {
+                "recinstructions": "Please read:"
+            }
+        }
+    }
+]

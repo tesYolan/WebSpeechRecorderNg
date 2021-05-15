@@ -6,6 +6,7 @@ import logging
 import flask
 from flask.helpers import flash
 from flask_cors import CORS, cross_origin
+from time import gmtime, strftime
 app = Flask(__name__)
 CORS(app)
 logging.getLogger('flask_cors').level = logging.DEBUG
@@ -32,17 +33,13 @@ def project(projectId):
 
 @app.route("/project/<projectId>/session/<sessionId>", methods=['GET','PATCH'])
 def project_session_items(projectId, sessionId):
-    response = {}
-    return('',204)
+    return '', 204
 @app.route("/project/<projectId>/session/<sessionId>/recfile")
 def project_session(projectId, sessionId):
-    response = {}
-    return('',204)
-    # if os.path.exists('project/{}/session/{}/recfile.json'.format(projectId, sessionId)):
-    #     with open("project/{}/session/{}/recfile.json".format(projectId, sessionId)) as f:
-    #         text = f.read()
-    #         response = json.loads(text)
-    return response
+    with open("project/{}/session/{}/recfile.json".format(projectId, sessionId), 'rt') as f:
+        text = f.read()
+        list_items = json.loads(text)
+    return flask.Response(json.dumps(list_items), mimetype='application/json')
         
 @app.route("/session/<sessionId>", methods=['GET','PATCH'])
 def session(sessionId):
@@ -84,15 +81,45 @@ def recording_saver(sessionId, itemcode):
     # TODO there is a lot to be done here. What is the format of the request. I would just overwrite the file. 
     if request.method == 'POST':
         data = request.data
-        with open("session/{}.json".format(sessionId), 'wt') as f:
+        with open("session/{}.json".format(sessionId), 'rt') as f:
             text = f.read()
             session = json.loads(text)
+        print(session["script"])
+        if os.path.exists('script/{}-script.json'.format(session["script"])):
+            with open('script/{}-script.json'.format(session["script"])) as f:
+                text = f.read()
+                script = json.loads(text)
 
         with open("project/{}/session/{}/recfile/{}.wav".format(session['project'], sessionId, itemcode), 'wb') as f:
             f.write(request.data)
+
+        with open("project/{}/session/{}/recfile.json".format(session['project'], sessionId), 'rt') as f:
+            text = f.read()
+            list_items = json.loads(text)
+            recfile = {}
+
+            recfile['recordingFileId'] = itemcode
+            recfile['session'] = sessionId
+            recfile['date'] = strftime("%Y-%m-%dT%H:%M:%S", gmtime())
+            recfile['recording'] = {
+                "mediaitems": [{
+                    "annotationTemplate" : True,
+                    "text" : script[itemcode]
+                }], 
+                "itemcode": "N0", 
+                "recduration": len(request.data),
+                "recinstructions" : {
+                    "recinstructions" : "Please read:"
+                }
+            }
+            list_items.append(recfile)
+        with open("project/{}/session/{}/recfile.json".format(session['project'], sessionId), 'wt') as f:
+            f.write(json.dumps(list_items, indent=4))
+
+
         return "", 204
     if request.method == 'GET':
-        with open("session/{}".format(sessionId), 'wt') as f:
+        with open("session/{}".format(sessionId), 'rt') as f:
             text = f.read()
             session = json.loads(text)
 
