@@ -1,0 +1,27 @@
+{
+    "type": "script",
+    "scriptId": 1,
+    "name": "Test1", 
+
+    "sections": [
+      {
+        "name": "Introduction", 
+        "mode": "MANUAL", 
+        "order": "SEQUENTIAL", 
+        "groups" : [
+          {
+            "promptItems": [{
+            "itemcode": "I0", 
+            "mediaitems": [
+              {
+                "text": "This is something!"
+              }
+            ]
+            }
+          ]
+          }
+        ]
+      }
+    ]
+  }
+

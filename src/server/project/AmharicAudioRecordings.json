@@ -1,0 +1,13 @@
+{
+    "name": "AmharicAudioRecordings",
+    "audioFormat": {
+        "channels": 1
+    },
+    "audioDevices": [
+      {
+        "name": "HypeMiC",
+        "playback": false,
+        "regex": true
+      }],
+    "speakerWindowShowStopRecordAction": true
+}
