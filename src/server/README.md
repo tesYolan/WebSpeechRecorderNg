@@ -104,6 +104,10 @@ Start the WebSpeechRecordingNG with the following command from the root director
 ```
 ng serve
 ```
+Before running the flask server, you need to install the flask-cors dep. 
+```
+pip install -r requirements.txt
+```
 
 Start the flask server with command from this folder
 ```

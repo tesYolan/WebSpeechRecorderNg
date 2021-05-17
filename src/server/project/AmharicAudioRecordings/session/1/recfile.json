@@ -1,8 +1,8 @@
-[
-    {
+{
+    "I0": {
         "recordingFileId": "I0",
         "session": "1",
-        "date": "2021-05-15T 14:52:31",
+        "date": "2021-05-17T06:00:00",
         "recording": {
             "mediaitems": [
                 {
@@ -11,10 +11,46 @@
                 }
             ],
             "itemcode": "N0",
-            "recduration": 246784,
+            "recduration": 312320,
+            "recinstructions": {
+                "recinstructions": "Please read:"
+            }
+        }
+    },
+    "I1": {
+        "recordingFileId": "I1",
+        "session": "1",
+        "date": "2021-05-17T06:00:07",
+        "recording": {
+            "mediaitems": [
+                {
+                    "annotationTemplate": true,
+                    "text": "This is another thing"
+                }
+            ],
+            "itemcode": "N0",
+            "recduration": 279552,
+            "recinstructions": {
+                "recinstructions": "Please read:"
+            }
+        }
+    },
+    "I2": {
+        "recordingFileId": "I2",
+        "session": "1",
+        "date": "2021-05-17T06:00:13",
+        "recording": {
+            "mediaitems": [
+                {
+                    "annotationTemplate": true,
+                    "text": "Wow, this is another items."
+                }
+            ],
+            "itemcode": "N0",
+            "recduration": 328704,
             "recinstructions": {
                 "recinstructions": "Please read:"
             }
         }
     }
-]
+}
