@@ -10,12 +10,5 @@ class Session:
         
         # We need to create a few folders. This would have to be update 
         os.makedirs("project/{}/session/{}/".format(self.session['project'], self.session['sessionId']))
-
-        
-
-
-
-
-
 if __name__ == "__main__":
     items = Session()

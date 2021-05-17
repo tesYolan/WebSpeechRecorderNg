@@ -11,6 +11,7 @@ The main file that is required is a session file with the following configuratio
     "sealed": false,
     "status": "COMPLETED",
     "script": 1,
+}
 ```
 
 There would be updates to this file from the REST end point. This indicates there should be a folder: "project/AmharicAudioRecordings/session/1/" and "project/AmharicAudioRecordings/session/1/recfile.json". THis can be created using the session.py or using `os.makedirs("project/AmharicAudioRecordings/session/1/)`
@@ -97,6 +98,16 @@ And `script/1-script.json` notice it the word `1`.
                     "I1": "This is another thing",
                     "I2": "Wow, this is another items."
                 }
+```
+# How to Run? 
+Start the WebSpeechRecordingNG with the following command from the root directory of this repo.
+```
+ng serve
+```
+
+Start the flask server with command from this folder
+```
+flask run
 ```
 
 # T0DO
