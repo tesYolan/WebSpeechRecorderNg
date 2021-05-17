@@ -31,14 +31,29 @@ def project(projectId):
 
     return project
 
-@app.route("/project/<projectId>/session/<sessionId>", methods=['GET','PATCH'])
+# TODO what this function. 
+@app.route("/project/<projectId>/session/<sessionId>", methods=['PATCH'])
 def project_session_items(projectId, sessionId):
-    return '', 204
+    if os.path.exists('session/{}.json'.format(sessionId)):
+        with open('session/{}.json'.format(sessionId)) as f:
+            text = f.read()
+            session = json.loads(text) 
+    if request.method == 'PATCH':
+        data = request.json
+        for i in data:
+            session[i] = data[i]
+        
+        with open('session/{}.json'.format(sessionId), 'wt') as f:
+            f.write(json.dumps(session, indent=4))
+        return '', 204
+
 @app.route("/project/<projectId>/session/<sessionId>/recfile")
 def project_session(projectId, sessionId):
     with open("project/{}/session/{}/recfile.json".format(projectId, sessionId), 'rt') as f:
         text = f.read()
-        list_items = json.loads(text)
+        dict_items = json.loads(text)
+        list_items = list(dict_items.values())
+        # now the list items are going to be gotten. 
     return flask.Response(json.dumps(list_items), mimetype='application/json')
         
 @app.route("/session/<sessionId>", methods=['GET','PATCH'])
@@ -90,12 +105,15 @@ def recording_saver(sessionId, itemcode):
                 text = f.read()
                 script = json.loads(text)
 
-        with open("project/{}/session/{}/recfile/{}.wav".format(session['project'], sessionId, itemcode), 'wb') as f:
+        # with open("project/{}/session/{}/recfile/{}.wav".format(session['project'], sessionId, itemcode), 'wb') as f:
+        #     f.write(request.data)
+        with open("recordingfile/{}.wav".format(itemcode), 'wb') as f:
             f.write(request.data)
+        
 
         with open("project/{}/session/{}/recfile.json".format(session['project'], sessionId), 'rt') as f:
             text = f.read()
-            list_items = json.loads(text)
+            dict_items = json.loads(text)
             recfile = {}
 
             recfile['recordingFileId'] = itemcode
@@ -112,10 +130,11 @@ def recording_saver(sessionId, itemcode):
                     "recinstructions" : "Please read:"
                 }
             }
-            list_items.append(recfile)
+            with open("recordingfile/{}.json".format(itemcode), 'wt') as f:
+                f.write(json.dumps(recfile))
+            dict_items[itemcode] = recfile
         with open("project/{}/session/{}/recfile.json".format(session['project'], sessionId), 'wt') as f:
-            f.write(json.dumps(list_items, indent=4))
-
+            f.write(json.dumps(dict_items, indent=4))
 
         return "", 204
     if request.method == 'GET':
@@ -131,16 +150,36 @@ def recording_saver(sessionId, itemcode):
 
 
 
-@app.route('/recordingfile/<recordingFileId>', methods=['POST', 'PATCH'])
+@app.route('/recordingfile/<recordingFileId>', methods=['POST', 'PATCH', 'GET'])
 def recording(recordingFileId):
     if request.method == 'POST':
         if (os.path.exists('recordingfile/{}.json'.format(recordingFileId))):
-            with('recordingfile/{}.json'.format(recordingFileId), 'r') as f:
-                text = f.read()
-                script = json.loads(text)
-            data = request.json
-            for i in data:
-                script[i] = data[i]
-            with('recordingfile/{}.json'.format(recordingFileId), 'wt') as f:
-                f.write(json.dumps(script, indent=4))
+            if request.mimetype == 'application/json':
+                data = request.json
+                with('recordingfile/{}.json'.format(recordingFileId), 'wt') as f:
+                    f.write(json.dumps(data, indent=4))
+                    return 'Success'
+            elif request.mimetype == "audio/wav":
+                with open("recordingfile/{}.wav".format(recordingFileId), 'wb') as f:
+                    f.write(request.data)
+                # response = flask.Response(mimetype="audio/wav")
+                # response.data = data
                 return 'Success'
+    if request.method == 'GET':
+            if request.mimetype == "audio/wav":
+                with open("recordingfile/{}.wav".format(recordingFileId), 'rb') as f:
+                    data = f.read()
+                response = flask.Response(mimetype="audio/wav")
+                response.data = data
+                return response
+            elif request.mimetype == "application/json":
+                with open('recordingfile/{}.json'.format(recordingFileId), 'rt') as f:
+                    rq = f.read()
+                    js = json.loads(rq)
+                    return js
+            with open("recordingfile/{}.wav".format(recordingFileId), 'rb') as f:
+                data = f.read()
+            response = flask.Response(mimetype="audio/wav")
+            response.data = data
+            return response
+

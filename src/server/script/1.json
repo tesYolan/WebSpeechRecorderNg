@@ -19,6 +19,28 @@
             ]
             }
           ]
+          },
+          {
+            "promptItems": [{
+            "itemcode": "I1", 
+            "mediaitems": [
+              {
+                "text": "This is another thing"
+              }
+            ]
+            }
+          ]
+          },
+          {
+            "promptItems": [{
+            "itemcode": "I2", 
+            "mediaitems": [
+              {
+                "text": "Wow, this is another items."
+              }
+            ]
+            }
+          ]
           }
         ]
       }

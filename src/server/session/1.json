@@ -1,8 +1,13 @@
 {
-    "debugMode": true,
+    "debugMode": false,
     "sessionId": 1,
     "type": "NORM",
     "project": "AmharicAudioRecordings",
     "sealed": false,
-    "script": 1
-  }
+    "script": 1,
+    "restartedDate": "2021-05-17T06:13:35.379Z",
+    "status": "COMPLETED",
+    "completedDate": "2021-05-17T03:35:14.415Z",
+    "loadedDate": "2021-05-17T04:57:17.952Z",
+    "startedDate": "2021-05-17T04:57:22.852Z"
+}

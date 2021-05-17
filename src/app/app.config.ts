@@ -5,7 +5,7 @@ import {environment} from "../environments/environment";
 export const SPR_CFG: SpeechRecorderConfig = {
   apiEndPoint: environment.apiEndPoint,
   apiType: (environment.apiType==='files')?ApiType.FILES:ApiType.NORMAL,
-  withCredentials:true,
+  withCredentials:false,
   enableDownloadRecordings: environment.enableDownloadRecordings,
   enableUploadRecordings: environment.enableUploadRecordings
 };
